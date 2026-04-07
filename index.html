@@ -955,7 +955,7 @@ function showConfirm(){
     +'📞 Garden Terrace: 092-881-0007<br>📞 Alcazar Avvio: 092-665-0077</p>'
     +'<button class="cb-action-btn cb-action-back" onclick="editInquiry()" style="margin-top:6px;justify-content:center;">✏️ 修正する</button>';
 
-  cbAddBot("ご入力内容をご確認ください。\nよろしければLINEでスタッフに送信してください😊", body);
+  cbAddBot("入力内容を担当者が確認中です", body);
 
   var prog = document.getElementById("cbProgress");
   if(prog) prog.querySelectorAll(".cb-progress-step").forEach(function(s){ s.className="cb-progress-step done"; });

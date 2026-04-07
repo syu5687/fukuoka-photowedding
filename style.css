@@ -449,9 +449,10 @@ a { color:inherit; text-decoration:none; }
 }
 .cb-input {
   flex:1; border:1px solid var(--border); padding:10px 14px;
-  font-size:12px; font-family:'Noto Sans JP',sans-serif;
+  font-size:16px; font-family:'Noto Sans JP',sans-serif;
   outline:none; resize:none; height:42px;
   border-right:none;
+  transform-origin: left top;
 }
 .cb-input:focus { border-color:var(--gold); }
 .cb-send {
@@ -483,3 +484,9 @@ a { color:inherit; text-decoration:none; }
 /* WebP非対応ブラウザ向けフォールバック */
 .no-webp .hero-right { background:url(hero-image.jpg) center center / cover no-repeat !important; }
 .no-webp .meal-card-std { background-image: url(party-image.jpg) !important; }
+
+/* iOS Safari 入力時自動ズーム防止 */
+@media (max-width:768px) {
+  .cb-input { font-size:16px !important; }
+  input, textarea, select { font-size:16px !important; }
+}

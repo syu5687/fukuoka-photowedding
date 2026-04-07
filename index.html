@@ -735,7 +735,7 @@ function cbSend(){
   input.value = "";
   document.getElementById("cbSendBtn").disabled = true;
   document.getElementById("cbQuick").style.display = "none";
-  cbAddMsg("user", text);
+  cbAddUser(text);
   cbShowTyping();
   // お問い合わせ意図を検出
   if(/お問い合わせ|申し込み|予約|進む|相談|仮予約/.test(text)){
@@ -747,7 +747,7 @@ function cbSend(){
   setTimeout(function(){
     cbHideTyping();
     var reply = cbGetReply(text);
-    cbAddMsg("bot", reply);
+    cbAddBot(reply);
     cbHistory.push({role:"user", content:text});
     cbHistory.push({role:"assistant", content:reply});
     if(cbHistory.length >= 4){

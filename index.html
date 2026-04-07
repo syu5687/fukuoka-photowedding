@@ -848,8 +848,6 @@ function nextInquiryStep(){
     cbAddBot("続いて<strong>メールアドレス</strong>をお知らせください。<br>（任意・不要な場合は「なし」と入力）");
     cbSetInputPlaceholder("例：hanako@example.com");
   } else if(step === "venue"){
-    cbInquiryStep++;
-    cbUpdateProgress(cbInquiryStep);
     var extra = document.createElement("div");
     extra.className = "cb-choice-btns";
     [["GARDEN TERRACE FUKUOKA","🌿"],["ALCAZAR AVVIO","🏛️"],["どちらでも",""]].forEach(function(v){

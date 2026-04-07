@@ -642,7 +642,7 @@
 //  https://formspree.io で登録後、フォームIDを取得して下記に設定
 //  例: "https://formspree.io/f/abcd1234"
 // ============================================================
-var INQUIRY_ENDPOINT = "https://formspree.io/f/YOUR_FORM_ID";
+var INQUIRY_ENDPOINT = "https://worker-autumn-cell-1da9.mk-cbe.workers.dev";
 var NOTIFY_EMAIL = "info-gtf@memolead.co.jp"; // 通知先メールアドレス
 
 var cbHistory = [];
@@ -749,15 +749,16 @@ function cbSend(){
 }
 
 function cbGetReply(q){
-  // プラン・内容
-  if(/プラン|内容|種類/.test(q)){
-    return "フォトウエディングプランは4種類ございます\u{1F60A}\n\n■ STANDARD ¥150,000（税込）\nタキシード＋ドレス＋撮影データ約20カット\n\n■ STANDARD WA ¥200,000（税込）\n紋付袴＋和装＋撮影データ約20カット\n\n■ GOLD ¥250,000（税込）\n和洋両方＋データ約60カット＋アルバム10P＋ロケ費\n\n■ PLATINA ¥300,000（税込）\n衣裳充実＋データ100カット＋アルバム20P＋ロケ費\n\n全プラン先着30組限定です！";
+  // お食事会を最初にチェック（「お食事会プランについて」がプランに誤マッチするのを防ぐ）
+  if(/食事|お食事|ディナー|パーティ/.test(q)){
+    return "お食事会プラン（Private Party）\n\n■ STANDARD ¥5,500（税込）＋フリードリンク\n■ EXECTIVE ¥8,800（税込）＋フリードリンク\n■ DELUXE ¥11,000（税込）＋フリードリンク\n\nフリードリンク：瓶ビール・焼酎・ウイスキー・ノンアルコールビール・ソフトドリンク";
+  }
+  // プラン・内容（お食事会を除外）
+  if(/プラン|内容|種類/.test(q) && !/食事/.test(q)){
+    return "フォトウエディングプランは4種類ございます😊\n\n■ STANDARD ¥150,000（税込）\nタキシード＋ドレス＋撮影データ約20カット\n\n■ STANDARD WA ¥200,000（税込）\n紋付袴＋和装＋撮影データ約20カット\n\n■ GOLD ¥250,000（税込）\n和洋両方＋データ約60カット＋アルバム10P＋ロケ費\n\n■ PLATINA ¥300,000（税込）\n衣裳充実＋データ100カット＋アルバム20P＋ロケ費\n\n全プラン先着30組限定です！";
   }
   if(/料金|価格|値段|費用|いくら/.test(q)){
     return "プランの料金（税込）\n\n• STANDARD：¥150,000\n• STANDARD WA：¥200,000\n• GOLD：¥250,000\n• PLATINA：¥300,000\n\n先着30組限定の特別価格です。お食事会は別途¥5,500〜。";
-  }
-  if(/食事|お食事|ディナー|パーティ/.test(q)){
-    return "お食事会プラン（Private Party）\n\n■ STANDARD ¥5,500（税込）＋フリードリンク\n■ EXECTIVE ¥8,800（税込）＋フリードリンク\n■ DELUXE ¥11,000（税込）＋フリードリンク\n\nフリードリンク：瓶ビール・焼酎・ウイスキー・ノンアルコールビール・ソフトドリンク";
   }
   if(/試着|衣裳|ドレス|和装|洋装/.test(q)){
     return "試着のみのご来場も大歓迎です！\n和洋500着以上を取り揃えております。事前ご予約でスムーズにご案内できます。\n\n📞 GTF: 092-881-0007\n📞 Avvio: 092-665-0077";
@@ -912,6 +913,21 @@ function showConfirm(){
   document.getElementById("cbHeaderTitle").textContent = "内容確認";
   document.getElementById("cbInputArea").style.display = "none";
   document.getElementById("cbBackArea").style.display = "none";
+
+  // ===== 管理者へメール通知（バックグラウンドで実行） =====
+  fetch(INQUIRY_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      "お名前": cbForm.name,
+      "お電話番号": cbForm.phone,
+      "メールアドレス": cbForm.email || "未入力",
+      "ご希望会場": cbForm.venue,
+      "ご希望プラン": cbForm.plan,
+      "ご要望": cbForm.message || "なし",
+      "_subject": "【仮予約・お問合せ】" + cbForm.name + "様 - " + cbForm.plan
+    })
+  }).catch(function(e){ console.log("notify error:", e); });
 
   var lineText = encodeURIComponent(
     "【フォトウエディング 仮予約・お問合せ】\n"

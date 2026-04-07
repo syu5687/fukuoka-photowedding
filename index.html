@@ -441,11 +441,8 @@
   <h3>まずはお気軽にご相談を</h3>
   <p>試着のみのご来場・資料請求も大歓迎です</p>
   <div class="cta-btns">
-    <a href="https://line.me/R/ti/p/@328uwdwg" class="cta-btn-line" target="_blank">
-      <span style="font-size:18px;">💬</span>LINEでお問い合わせ
-    </a>
-    <button class="cta-btn-inquiry" onclick="openPopup()">
-      <span style="font-size:16px;">✉️</span>お問い合わせ
+    <button class="cta-btn-inquiry" onclick="openPopup()" style="padding:16px 48px;font-size:14px;">
+      <span style="font-size:18px;">💬</span>仮予約・お問い合わせ
     </button>
   </div>
 </div>
@@ -565,11 +562,8 @@
   <span class="en">Contact Us</span>
   <span class="ja">— まずはお気軽にご相談ください —</span>
   <div class="final-btns" style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
-    <a href="https://line.me/R/ti/p/@328uwdwg" class="cta-btn-line" target="_blank" style="padding:18px 48px;font-size:14px;">
-      <span style="font-size:20px;">💬</span>LINEでお問い合わせ
-    </a>
-    <button class="cta-btn-inquiry" onclick="openPopup()" style="padding:18px 48px;font-size:14px;">
-      <span style="font-size:18px;">✉️</span>お問い合わせ
+    <button class="cta-btn-inquiry" onclick="openPopup()" style="padding:18px 60px;font-size:14px;">
+      <span style="font-size:20px;">💬</span>仮予約・お問い合わせ
     </button>
   </div>
 </section>
@@ -600,12 +594,9 @@
 </footer>
 
 <!-- FLOATING CTA -->
-<div class="float-cta">
-  <a href="https://line.me/R/ti/p/@328uwdwg" class="float-btn-line" target="_blank">
-    <span style="font-size:18px;">💬</span>LINEでお問い合わせ
-  </a>
-  <button class="float-btn-inquiry" onclick="openPopup()">
-    <span style="font-size:16px;">✉️</span>お問い合わせ
+<div class="float-cta" style="justify-content:center;">
+  <button class="float-btn-inquiry" onclick="openPopup()" style="flex:none;padding:14px 60px;font-size:14px;letter-spacing:0.12em;">
+    <span style="font-size:18px;">💬</span>仮予約・お問い合わせ
   </button>
 </div>
 
@@ -734,7 +725,6 @@ function cbSend(){
   var text = input.value.trim(); if(!text) return;
   input.value = "";
   document.getElementById("cbSendBtn").disabled = true;
-  document.getElementById("cbQuick").style.display = "none";
   cbAddUser(text);
   cbShowTyping();
   // お問い合わせ意図を検出
@@ -750,10 +740,6 @@ function cbSend(){
     cbAddBot(reply);
     cbHistory.push({role:"user", content:text});
     cbHistory.push({role:"assistant", content:reply});
-    if(cbHistory.length >= 4){
-      var q = document.getElementById("cbQuick");
-      if(q) q.style.display="flex";
-    }
     document.getElementById("cbSendBtn").disabled = false;
   }, 700);
 }
@@ -803,6 +789,214 @@ function cbGetReply(q){
     return "こちらこそありがとうございます！他にご質問があればお気軽にどうぞ。";
   }
   return "ありがとうございます。詳しくはスタッフに直接ご確認ください。\n\n📞 GTF: 092-881-0007\n📞 Avvio: 092-665-0077\n💬 LINE: @328uwdwg\n\n「お問い合わせに進む」から仮予約もできます！";
+}
+
+
+// ============================================================
+//  INQUIRY FLOW
+// ============================================================
+var CB_INQUIRY_STEPS = ["name","phone","email","venue","plan","message"];
+
+function startInquiry(){
+  cbPhase = "inquiry"; cbInquiryStep = 0;
+  cbForm = {name:"",phone:"",email:"",venue:"",plan:"",message:""};
+  document.getElementById("cbHeaderTitle").textContent = "仮予約・お問合せ";
+  // プログレスバー追加
+  var header = document.querySelector(".cb-header");
+  var prog = document.getElementById("cbProgress");
+  if(!prog){
+    prog = document.createElement("div");
+    prog.id = "cbProgress"; prog.className = "cb-progress";
+    prog.innerHTML = '<div class="cb-progress-step active"></div><div class="cb-progress-step"></div><div class="cb-progress-step"></div><div class="cb-progress-step"></div><div class="cb-progress-step"></div><div class="cb-progress-step"></div>';
+    header.parentNode.insertBefore(prog, header.nextSibling);
+  }
+  document.getElementById("cbInputArea").style.display = "flex";
+  document.getElementById("cbBackArea").style.display = "none";
+  cbAddBot("ありがとうございます！😊 いくつかご入力いただき、LINEでスタッフに直接つなぎます。<br>まず<strong>お名前</strong>を教えていただけますか？");
+  cbSetInputPlaceholder("例：山田 花子");
+}
+
+function handleInquiryInput(){
+  var input = document.getElementById("cbInput");
+  var val = input.value.trim(); if(!val) return;
+  input.value = "";
+  cbAddUser(val);
+  var step = CB_INQUIRY_STEPS[cbInquiryStep];
+  if(step === "name")    cbForm.name    = val;
+  if(step === "phone")   cbForm.phone   = val;
+  if(step === "email")   cbForm.email   = val;
+  if(step === "message") cbForm.message = val;
+  cbInquiryStep++;
+  cbUpdateProgress(cbInquiryStep);
+  nextInquiryStep();
+}
+
+function nextInquiryStep(){
+  var step = CB_INQUIRY_STEPS[cbInquiryStep];
+  showBackBtn(cbInquiryStep > 0);
+  if(step === "phone"){
+    cbAddBot("ありがとうございます😊<br>次に<strong>お電話番号</strong>をお知らせください。");
+    cbSetInputPlaceholder("例：090-1234-5678");
+  } else if(step === "email"){
+    cbAddBot("続いて<strong>メールアドレス</strong>をお知らせください。<br>（任意・不要な場合は「なし」と入力）");
+    cbSetInputPlaceholder("例：hanako@example.com");
+  } else if(step === "venue"){
+    cbInquiryStep++;
+    cbUpdateProgress(cbInquiryStep);
+    var extra = document.createElement("div");
+    extra.className = "cb-choice-btns";
+    [["GARDEN TERRACE FUKUOKA","🌿"],["ALCAZAR AVVIO","🏛️"],["どちらでも",""]].forEach(function(v){
+      var btn = document.createElement("button");
+      btn.className = "cb-choice";
+      btn.textContent = (v[1]?v[1]+" ":"")+v[0];
+      btn.onclick = function(){ chooseVenue(v[0]); };
+      extra.appendChild(btn);
+    });
+    var wrap = document.createElement("div");
+    wrap.className = "cb-msg bot";
+    wrap.innerHTML = '<div class="cb-avatar">✦</div><div class="cb-bubble">ご希望の<strong>会場</strong>をお選びください。</div>';
+    wrap.querySelector(".cb-bubble").appendChild(extra);
+    document.getElementById("cbMessages").appendChild(wrap);
+    document.getElementById("cbMessages").scrollTop = 99999;
+  } else if(step === "plan"){
+    var plans = [["STANDARD ¥150,000","STANDARD"],["STANDARD WA ¥200,000","STANDARD WA"],["GOLD ¥250,000","GOLD"],["PLATINA ¥300,000","PLATINA"],["未定・相談したい","未定"]];
+    var extra2 = document.createElement("div");
+    extra2.className = "cb-choice-btns";
+    plans.forEach(function(v){
+      var btn = document.createElement("button");
+      btn.className = "cb-choice";
+      btn.textContent = v[1];
+      btn.onclick = function(){ choosePlan(v[0]); };
+      extra2.appendChild(btn);
+    });
+    var wrap2 = document.createElement("div");
+    wrap2.className = "cb-msg bot";
+    wrap2.innerHTML = '<div class="cb-avatar">✦</div><div class="cb-bubble">ご興味のある<strong>プラン</strong>をお選びください。</div>';
+    wrap2.querySelector(".cb-bubble").appendChild(extra2);
+    document.getElementById("cbMessages").appendChild(wrap2);
+    document.getElementById("cbMessages").scrollTop = 99999;
+  } else if(step === "message"){
+    cbAddBot("最後に<strong>ご要望・ご質問</strong>があればご記入ください。<br>（なければ「なし」と入力）");
+    cbSetInputPlaceholder("例：試着希望日など");
+  } else {
+    showConfirm();
+  }
+}
+
+function chooseVenue(val){
+  cbForm.venue = val; cbAddUser(val);
+  cbInquiryStep++; cbUpdateProgress(cbInquiryStep);
+  nextInquiryStep();
+}
+function choosePlan(val){
+  cbForm.plan = val; cbAddUser(val);
+  cbInquiryStep++; cbUpdateProgress(cbInquiryStep);
+  nextInquiryStep();
+}
+
+function showBackBtn(show){
+  document.getElementById("cbBackArea").style.display = show ? "block" : "none";
+}
+
+// ============================================================
+//  CONFIRM → LINE送信
+// ============================================================
+function showConfirm(){
+  cbPhase = "confirm";
+  document.getElementById("cbHeaderTitle").textContent = "内容確認";
+  document.getElementById("cbInputArea").style.display = "none";
+  document.getElementById("cbBackArea").style.display = "none";
+
+  var lineText = encodeURIComponent(
+    "【フォトウエディング 仮予約・お問合せ】\n"
+    +"お名前："+cbForm.name+"\n"
+    +"電話番号："+cbForm.phone+"\n"
+    +"メール："+(cbForm.email||"なし")+"\n"
+    +"希望会場："+cbForm.venue+"\n"
+    +"希望プラン："+cbForm.plan+"\n"
+    +"ご要望："+(cbForm.message||"なし")
+  );
+  var lineUrl = "https://line.me/R/ti/p/%40328uwdwg";
+
+  var body =
+    '<div class="cb-confirm-box">'
+    +'<dl>'
+    +'<dt>お名前</dt><dd>'+cbForm.name+'</dd>'
+    +'<dt>お電話番号</dt><dd>'+cbForm.phone+'</dd>'
+    +'<dt>メールアドレス</dt><dd>'+(cbForm.email||"—")+'</dd>'
+    +'<dt>ご希望会場</dt><dd>'+cbForm.venue+'</dd>'
+    +'<dt>ご希望プラン</dt><dd>'+cbForm.plan+'</dd>'
+    +'<dt>ご要望・ご質問</dt><dd>'+(cbForm.message||"—")+'</dd>'
+    +'</dl></div>'
+    +'<a href="'+lineUrl+'" target="_blank" class="cb-action-btn cb-action-line" style="margin-top:14px;justify-content:center;font-size:13px;">'
+    +'<span style="font-size:20px;margin-right:6px;">💬</span>LINEでスタッフに送信する</a>'
+    +'<p style="font-size:10px;color:#888;line-height:1.7;margin-top:8px;padding:0 2px;">'
+    +'LINEが開いたら、上記の内容をコピーしてスタッフに送ってください。<br><br>'
+    +'📞 Garden Terrace: 092-881-0007<br>📞 Alcazar Avvio: 092-665-0077</p>'
+    +'<button class="cb-action-btn cb-action-back" onclick="editInquiry()" style="margin-top:6px;justify-content:center;">✏️ 修正する</button>';
+
+  cbAddBot("ご入力内容をご確認ください。\nよろしければLINEでスタッフに送信してください😊", body);
+
+  var prog = document.getElementById("cbProgress");
+  if(prog) prog.querySelectorAll(".cb-progress-step").forEach(function(s){ s.className="cb-progress-step done"; });
+}
+
+function editInquiry(){
+  cbPhase = "inquiry"; cbInquiryStep = 0;
+  document.getElementById("cbInputArea").style.display = "flex";
+  cbForm = {name:"",phone:"",email:"",venue:"",plan:"",message:""};
+  cbAddBot("最初からもう一度ご入力ください。<br>まず<strong>お名前</strong>を教えてください。");
+  cbSetInputPlaceholder("例：山田 花子");
+  showBackBtn(false);
+}
+
+function cbGoBack(){
+  if(cbInquiryStep <= 0) return;
+  cbInquiryStep--;
+  cbUpdateProgress(cbInquiryStep);
+  var step = CB_INQUIRY_STEPS[cbInquiryStep];
+  cbForm[step] = "";
+  askStepByIndex(cbInquiryStep);
+}
+
+function askStepByIndex(i){
+  showBackBtn(i > 0);
+  cbPhase = "inquiry";
+  document.getElementById("cbInputArea").style.display = "flex";
+  var msgs = {
+    0: ["もう一度<strong>お名前</strong>を教えていただけますか？","例：山田 花子"],
+    1: ["もう一度<strong>お電話番号</strong>をお知らせください。","例：090-1234-5678"],
+    2: ["もう一度<strong>メールアドレス</strong>をお知らせください。<br>（不要な場合は「なし」）","例：hanako@example.com"],
+    5: ["もう一度<strong>ご要望・ご質問</strong>をご記入ください。<br>（なければ「なし」）","例：試着希望日など"]
+  };
+  if(msgs[i]){
+    cbAddBot(msgs[i][0]); cbSetInputPlaceholder(msgs[i][1]);
+  } else if(i===3){
+    var extra = document.createElement("div");
+    extra.className = "cb-choice-btns";
+    [["GARDEN TERRACE FUKUOKA","🌿"],["ALCAZAR AVVIO","🏛️"],["どちらでも",""]].forEach(function(v){
+      var btn = document.createElement("button");
+      btn.className = "cb-choice"; btn.textContent = (v[1]?v[1]+" ":"")+v[0];
+      btn.onclick = function(){ chooseVenue(v[0]); }; extra.appendChild(btn);
+    });
+    var wrap = document.createElement("div"); wrap.className = "cb-msg bot";
+    wrap.innerHTML = '<div class="cb-avatar">✦</div><div class="cb-bubble">ご希望の<strong>会場</strong>をもう一度お選びください。</div>';
+    wrap.querySelector(".cb-bubble").appendChild(extra);
+    document.getElementById("cbMessages").appendChild(wrap);
+    document.getElementById("cbMessages").scrollTop = 99999;
+  } else if(i===4){
+    var plans = [["STANDARD ¥150,000","STANDARD"],["STANDARD WA ¥200,000","STANDARD WA"],["GOLD ¥250,000","GOLD"],["PLATINA ¥300,000","PLATINA"],["未定・相談したい","未定"]];
+    var extra2 = document.createElement("div"); extra2.className = "cb-choice-btns";
+    plans.forEach(function(v){
+      var btn = document.createElement("button"); btn.className = "cb-choice"; btn.textContent = v[1];
+      btn.onclick = function(){ choosePlan(v[0]); }; extra2.appendChild(btn);
+    });
+    var wrap2 = document.createElement("div"); wrap2.className = "cb-msg bot";
+    wrap2.innerHTML = '<div class="cb-avatar">✦</div><div class="cb-bubble">ご興味のある<strong>プラン</strong>をもう一度お選びください。</div>';
+    wrap2.querySelector(".cb-bubble").appendChild(extra2);
+    document.getElementById("cbMessages").appendChild(wrap2);
+    document.getElementById("cbMessages").scrollTop = 99999;
+  }
 }
 
 

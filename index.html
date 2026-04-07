@@ -660,6 +660,10 @@ function openPopup(){ cbOpen(); }
 function cbOpen(){
   document.getElementById("cbOverlay").classList.add("show");
   document.body.style.overflow = "hidden";
+  // chatモードの時だけクイックボタン表示
+  if(cbPhase === "chat"){
+    document.getElementById("cbQuick").style.display = "flex";
+  }
   if(cbHistory.length === 0 && cbPhase === "chat"){
     cbAddBot("こんにちは！✨ フォトウエディングプランについて、お気軽にご質問ください。\nご質問が終わりましたら「お問い合わせに進む」からご予約のご相談もできます😊");
   }
@@ -801,6 +805,8 @@ function startInquiry(){
   cbPhase = "inquiry"; cbInquiryStep = 0;
   cbForm = {name:"",phone:"",email:"",venue:"",plan:"",message:""};
   document.getElementById("cbHeaderTitle").textContent = "仮予約・お問合せ";
+  // 問い合わせ中はクイックボタンを非表示
+  document.getElementById("cbQuick").style.display = "none";
   // プログレスバー追加
   var header = document.querySelector(".cb-header");
   var prog = document.getElementById("cbProgress");

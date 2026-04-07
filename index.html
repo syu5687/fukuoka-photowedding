@@ -728,202 +728,83 @@ function cbSetInputPlaceholder(text){ document.getElementById("cbInput").placeho
 //  CHAT MODE
 // ============================================================
 function cbQ(text){ document.getElementById("cbInput").value=text; cbSend(); }
-async function cbSend(){
+function cbSend(){
   if(cbPhase === "inquiry"){ handleInquiryInput(); return; }
   var input = document.getElementById("cbInput");
   var text = input.value.trim(); if(!text) return;
   input.value = "";
   document.getElementById("cbSendBtn").disabled = true;
-  cbAddUser(text);
-  cbHistory.push({role:"user", content:text});
+  document.getElementById("cbQuick").style.display = "none";
+  cbAddMsg("user", text);
+  cbShowTyping();
   // お問い合わせ意図を検出
-  if(/お問い合わせ|申し込み|予約|進む|相談/.test(text)){
+  if(/お問い合わせ|申し込み|予約|進む|相談|仮予約/.test(text)){
     cbHideTyping();
     document.getElementById("cbSendBtn").disabled = false;
     setTimeout(function(){ startInquiry(); }, 300);
     return;
   }
-  cbShowTyping();
-  try {
-    var res = await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:600, system:CB_SYSTEM, messages:cbHistory })
-    });
-    var data = await res.json();
-    var reply = (data.content&&data.content[0])?data.content[0].text:"ただいま確認中です。しばらくお待ちください。";
-    cbHistory.push({role:"assistant",content:reply});
-    cbHideTyping(); cbAddBot(reply);
-    // 返答後にお問い合わせ誘導を表示
+  setTimeout(function(){
+    cbHideTyping();
+    var reply = cbGetReply(text);
+    cbAddMsg("bot", reply);
+    cbHistory.push({role:"user", content:text});
+    cbHistory.push({role:"assistant", content:reply});
     if(cbHistory.length >= 4){
       var q = document.getElementById("cbQuick");
       if(q) q.style.display="flex";
     }
-  } catch(e){
-    cbHideTyping();
-    cbAddBot("申し訳ございません。一時的に応答できない状況です。\nTEL: 092-881-0007（GTF）\nTEL: 092-665-0077（Avvio）\nLINE: @328uwdwg");
+    document.getElementById("cbSendBtn").disabled = false;
+  }, 700);
+}
+
+function cbGetReply(q){
+  // プラン・内容
+  if(/プラン|内容|種類/.test(q)){
+    return "フォトウエディングプランは4種類ございます\u{1F60A}\n\n■ STANDARD ¥150,000（税込）\nタキシード＋ドレス＋撮影データ約20カット\n\n■ STANDARD WA ¥200,000（税込）\n紋付袴＋和装＋撮影データ約20カット\n\n■ GOLD ¥250,000（税込）\n和洋両方＋データ約60カット＋アルバム10P＋ロケ費\n\n■ PLATINA ¥300,000（税込）\n衣裳充実＋データ100カット＋アルバム20P＋ロケ費\n\n全プラン先着30組限定です！";
   }
-  document.getElementById("cbSendBtn").disabled = false;
-}
-
-// ============================================================
-//  INQUIRY FLOW
-// ============================================================
-function startInquiry(){
-  cbPhase = "inquiry"; cbInquiryStep = 0;
-  cbForm = {name:"",phone:"",email:"",venue:"",plan:"",message:""};
-  document.getElementById("cbHeaderTitle").textContent = "仮予約・お問合せ";
-  document.getElementById("cbQuick").style.display = "none";
-  // プログレスバー追加
-  var header = document.querySelector(".cb-header");
-  var prog = document.getElementById("cbProgress");
-  if(!prog){
-    prog = document.createElement("div");
-    prog.id = "cbProgress"; prog.className = "cb-progress";
-    prog.innerHTML = '<div class="cb-progress-step active"></div><div class="cb-progress-step"></div><div class="cb-progress-step"></div><div class="cb-progress-step"></div><div class="cb-progress-step"></div><div class="cb-progress-step"></div>';
-    header.parentNode.insertBefore(prog, header.nextSibling);
+  if(/料金|価格|値段|費用|いくら/.test(q)){
+    return "プランの料金（税込）\n\n• STANDARD：¥150,000\n• STANDARD WA：¥200,000\n• GOLD：¥250,000\n• PLATINA：¥300,000\n\n先着30組限定の特別価格です。お食事会は別途¥5,500〜。";
   }
-  cbAddBot("ありがとうございます！😊 いくつかご入力いただき、スタッフよりご連絡いたします。\nまず、<strong>お名前</strong>を教えていただけますか？");
-  cbSetInputPlaceholder("例：山田 花子");
-  document.getElementById("cbBackArea").style.display = "none"; // 最初のステップは戻れない
-}
-
-function handleInquiryInput(){
-  var input = document.getElementById("cbInput");
-  var val = input.value.trim(); if(!val) return;
-  input.value = "";
-  cbAddUser(val);
-  var step = CB_INQUIRY_STEPS[cbInquiryStep];
-  if(step === "name")   cbForm.name    = val;
-  if(step === "phone")  cbForm.phone   = val;
-  if(step === "email")  cbForm.email   = val;
-  if(step === "message")cbForm.message = val;
-  cbInquiryStep++;
-  cbUpdateProgress(cbInquiryStep);
-  nextInquiryStep();
-}
-
-function showBackBtn(show){
-  document.getElementById("cbBackArea").style.display = show ? "block" : "none";
-}
-
-function nextInquiryStep(){
-  var step = CB_INQUIRY_STEPS[cbInquiryStep];
-  showBackBtn(cbInquiryStep > 0);
-  if(step === "phone"){
-    cbAddBot("ありがとうございます😊\n次に<strong>お電話番号</strong>をお知らせください。");
-    cbSetInputPlaceholder("例：090-1234-5678");
-  } else if(step === "email"){
-    cbAddBot("続いて<strong>メールアドレス</strong>をお知らせください。\n（任意・不要な場合は「なし」と入力してください）");
-    cbSetInputPlaceholder("例：hanako@example.com");
-  } else if(step === "venue"){
-    cbInquiryStep++; // venue is choice
-    cbUpdateProgress(cbInquiryStep);
-    cbAddBot("ご希望の<strong>会場</strong>をお選びください。",
-      '<div class="cb-choice-btns">'
-      +'<button class="cb-choice" onclick="chooseVenue(\'GARDEN TERRACE FUKUOKA\')">🌿 GARDEN TERRACE FUKUOKA</button>'
-      +'<button class="cb-choice" onclick="chooseVenue(\'ALCAZAR AVVIO\')">🏛️ ALCAZAR AVVIO</button>'
-      +'<button class="cb-choice" onclick="chooseVenue(\'どちらでも\')">どちらでも</button>'
-      +'</div>');
-  } else if(step === "plan"){
-    cbAddBot("ご興味のある<strong>プラン</strong>をお選びください。",
-      '<div class="cb-choice-btns">'
-      +'<button class="cb-choice" onclick="choosePlan(\'STANDARD ¥150,000\')">STANDARD<br>¥150,000</button>'
-      +'<button class="cb-choice" onclick="choosePlan(\'STANDARD WA ¥200,000\')">STANDARD WA<br>¥200,000</button>'
-      +'<button class="cb-choice" onclick="choosePlan(\'GOLD ¥250,000\')">GOLD<br>¥250,000</button>'
-      +'<button class="cb-choice" onclick="choosePlan(\'PLATINA ¥300,000\')">PLATINA<br>¥300,000</button>'
-      +'<button class="cb-choice" onclick="choosePlan(\'未定・相談したい\')">未定・相談したい</button>'
-      +'</div>');
-  } else if(step === "message"){
-    cbAddBot("最後に<strong>ご要望・ご質問</strong>があればご記入ください。\n（なければ「なし」と入力してください）");
-    cbSetInputPlaceholder("例：試着希望日など");
-  } else {
-    // 全ステップ完了→確認へ
-    showConfirm();
+  if(/食事|お食事|ディナー|パーティ/.test(q)){
+    return "お食事会プラン（Private Party）\n\n■ STANDARD ¥5,500（税込）＋フリードリンク\n■ EXECTIVE ¥8,800（税込）＋フリードリンク\n■ DELUXE ¥11,000（税込）＋フリードリンク\n\nフリードリンク：瓶ビール・焼酎・ウイスキー・ノンアルコールビール・ソフトドリンク";
   }
-}
-
-function chooseVenue(val){
-  cbForm.venue = val; cbAddUser(val);
-  cbInquiryStep++; cbUpdateProgress(cbInquiryStep);
-  nextInquiryStep();
-}
-function choosePlan(val){
-  cbForm.plan = val; cbAddUser(val);
-  cbInquiryStep++; cbUpdateProgress(cbInquiryStep);
-  nextInquiryStep();
-}
-
-// 前のステップへ戻る
-function askStepByIndex(i){
-  showBackBtn(i > 0);
-  cbPhase = "inquiry";
-  document.getElementById("cbInputArea").style.display = "flex";
-  if(i === 0){
-    cbAddBot("もう一度<strong>お名前</strong>を教えていただけますか？");
-    cbSetInputPlaceholder("例：山田 花子");
-  } else if(i === 1){
-    cbAddBot("もう一度<strong>お電話番号</strong>をお知らせください。");
-    cbSetInputPlaceholder("例：090-1234-5678");
-  } else if(i === 2){
-    cbAddBot("もう一度<strong>メールアドレス</strong>をお知らせください。<br>（不要な場合は「なし」）");
-    cbSetInputPlaceholder("例：hanako@example.com");
-  } else if(i === 3){
-    var extra = document.createElement("div");
-    extra.className = "cb-choice-btns";
-    [["GARDEN TERRACE FUKUOKA","🌿"],["ALCAZAR AVVIO","🏛️"],["どちらでも",""]].forEach(function(v){
-      var btn = document.createElement("button");
-      btn.className = "cb-choice";
-      btn.textContent = (v[1]?" "+v[1]+" ":"") + v[0];
-      btn.onclick = function(){ chooseVenue(v[0]); };
-      extra.appendChild(btn);
-    });
-    var msgs = document.getElementById("cbMessages");
-    var wrap = document.createElement("div");
-    wrap.className = "cb-msg bot";
-    wrap.innerHTML = '<div class="cb-avatar">✦</div><div class="cb-bubble">ご希望の<strong>会場</strong>をもう一度お選びください。</div>';
-    wrap.querySelector(".cb-bubble").appendChild(extra);
-    msgs.appendChild(wrap);
-    msgs.scrollTop = msgs.scrollHeight;
-  } else if(i === 4){
-    var plans = [["STANDARD ¥150,000","STANDARD"],["STANDARD WA ¥200,000","STANDARD WA"],["GOLD ¥250,000","GOLD"],["PLATINA ¥300,000","PLATINA"],["未定・相談したい","未定"]];
-    var extra2 = document.createElement("div");
-    extra2.className = "cb-choice-btns";
-    plans.forEach(function(v){
-      var btn = document.createElement("button");
-      btn.className = "cb-choice";
-      btn.textContent = v[1];
-      btn.onclick = function(){ choosePlan(v[0]); };
-      extra2.appendChild(btn);
-    });
-    var msgs2 = document.getElementById("cbMessages");
-    var wrap2 = document.createElement("div");
-    wrap2.className = "cb-msg bot";
-    wrap2.innerHTML = '<div class="cb-avatar">✦</div><div class="cb-bubble">ご興味のある<strong>プラン</strong>をもう一度お選びください。</div>';
-    wrap2.querySelector(".cb-bubble").appendChild(extra2);
-    msgs2.appendChild(wrap2);
-    msgs2.scrollTop = msgs2.scrollHeight;
-  } else if(i === 5){
-    cbAddBot("もう一度<strong>ご要望・ご質問</strong>をご記入ください。<br>（なければ「なし」）");
-    cbSetInputPlaceholder("例：試着希望日など");
+  if(/試着|衣裳|ドレス|和装|洋装/.test(q)){
+    return "試着のみのご来場も大歓迎です！\n和洋500着以上を取り揃えております。事前ご予約でスムーズにご案内できます。\n\n📞 GTF: 092-881-0007\n📞 Avvio: 092-665-0077";
   }
+  if(/予約|申込|手順|流れ|方法/.test(q)){
+    return "ご予約の流れ\n\n① お問い合わせ（電話・LINE・チャット）\n② 衣裳試着・打ち合わせ\n③ 撮影当日\n④ データお渡し（約3〜4週間後）\n\n「お問い合わせに進む」から仮予約も可能です！";
+  }
+  if(/ロケ|撮影場所/.test(q)){
+    return "ロケーション撮影も充実しています！\n福岡市内の人気スポット多数。GOLDプラン以上はロケ費込みです。\nご希望のロケ地もご相談ください。";
+  }
+  if(/会場|違い|どちら|garden|alcazar/.test(q)){
+    return "2会場からお選びいただけます\n\n■ GARDEN TERRACE FUKUOKA\n緑豊かな高台のリゾートホテル\n📞 092-881-0007\n\n■ ALCAZAR AVVIO\nモダンなヨーロピアンスタイル\n📞 092-665-0077\n\n両会場とも無料見学できます！";
+  }
+  if(/先着|残り|何組|限定/.test(q)){
+    return "先着30組限定です⚠️\n残り組数はお電話にてご確認ください。\n人気日程から埋まりますのでお早めに！\n\n📞 GTF: 092-881-0007\n📞 Avvio: 092-665-0077";
+  }
+  if(/データ|カット|アルバム|写真|枚/.test(q)){
+    return "撮影データのご案内\n\n• STANDARD / WA：約20カット\n• GOLD：約60カット＋アルバム10P\n• PLATINA：約100カット＋アルバム20P\n\n撮影日より約3〜4週間でCD/USBにてお渡し";
+  }
+  if(/時間|何時間|当日/.test(q)){
+    return "当日の所要時間\n\n• STANDARD：約4〜5時間\n• GOLD・PLATINA（ロケあり）：約6〜8時間\n\nお食事会は別途お時間が必要です。";
+  }
+  if(/家族|友人|同席|一緒|ファミリー/.test(q)){
+    return "ご家族やご友人の同席OK！\nファミリーフォトのモーニング・留袖の準備も可能です。\nお食事会プランで大切な方と特別なひとときを。";
+  }
+  if(/line|ライン/.test(q)){
+    return "LINEでのお問い合わせ\n\nLINE ID: @328uwdwg\n\nまたはこのチャットの「お問い合わせに進む」からも送信できます！";
+  }
+  if(/電話|tel/.test(q)){
+    return "📞 GARDEN TERRACE FUKUOKA\n092-881-0007（受付 10:00〜19:00）\n\n📞 ALCAZAR AVVIO\n092-665-0077（受付 10:00〜19:00）";
+  }
+  if(/ありがとう|thank/.test(q)){
+    return "こちらこそありがとうございます！他にご質問があればお気軽にどうぞ。";
+  }
+  return "ありがとうございます。詳しくはスタッフに直接ご確認ください。\n\n📞 GTF: 092-881-0007\n📞 Avvio: 092-665-0077\n💬 LINE: @328uwdwg\n\n「お問い合わせに進む」から仮予約もできます！";
 }
 
-function cbGoBack(){
-  if(cbInquiryStep <= 0) return;
-  cbInquiryStep--;
-  cbUpdateProgress(cbInquiryStep);
-  var step = CB_INQUIRY_STEPS[cbInquiryStep];
-  cbForm[step] = "";
-  askStepByIndex(cbInquiryStep);
-}
-
-function editInquiry(){
-  cbPhase = "inquiry"; cbInquiryStep = 0;
-  document.getElementById("cbInputArea").style.display = "flex";
-  cbForm = {name:"",phone:"",email:"",venue:"",plan:"",message:""};
-  cbAddBot("最初からもう一度ご入力ください。\nまず<strong>お名前</strong>を教えてください。");
-  cbSetInputPlaceholder("例：山田 花子");
-}
 
 // FAQ Accordion
 document.querySelectorAll(".faq-q").forEach(function(q){

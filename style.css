@@ -776,3 +776,33 @@ a { color:inherit; text-decoration:none; }
   background: var(--gold);
   color: #fff;
 }
+
+/* ===== SP テキスト折り返し全体強化 ===== */
+@media(max-width:768px){
+  p, span, h1, h2, h3, h4, li, dt, dd, td, th {
+    overflow-wrap: break-word;
+    word-break: auto-phrase;
+  }
+  .urgency-bar {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 8px 10px;
+    text-align: center;
+    white-space: normal;
+  }
+  .section-title .ja {
+    font-size: 14px;
+  }
+  .meal-footnote {
+    font-size: 10px;
+    line-height: 1.8;
+  }
+}
+
+/* ヘッダー会場名リンク */
+.logo-link {
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s;
+}
+.logo-link:hover { opacity: 0.65; }

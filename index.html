@@ -1171,6 +1171,9 @@ function showConfirm(){
 
   // Meta Pixel CV計測
   if(typeof fbq !== 'undefined'){ fbq('track', 'Lead'); }
+  // Meta Pixel & GA4 CV計測
+  if(typeof fbq !== 'undefined'){ fbq('track', 'Lead'); }
+  if(typeof gtag !== 'undefined'){ gtag('event', 'generate_lead'); }
   // ===== 管理者へメール通知（バックグラウンドで実行） =====
   fetch(INQUIRY_ENDPOINT, {
     method: "POST",
